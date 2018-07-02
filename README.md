@@ -12,7 +12,7 @@ The `update-unifi-certificate.sh` script enables easy updating of the certificat
 
 ## License
 
-Copyright 2016 Martin Kamp Jensen
+Copyright 2018 Ammon Casey
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

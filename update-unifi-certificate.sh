@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2016 Martin Kamp Jensen
+# Copyright 2018 Ammon Casey
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,20 +46,25 @@ CLOUD_KEY="$?"
 # Find out what user we are
 CURRENT_USER="$(whoami)"
 
+SSLDIR="/etc/ssl"
+CERTDIR="${SSLDIR}/private"
+BACKUPDIR="${SSLDIR}/backup"
+KEYSTOREDIR="/usr/lib/unifi/data"
+KEYPASS="aircontrolenterprise"
+TIMESTAMP="$(date "+%Y%m%d%H%M.%S")"
+
 echo "Updating UniFi Controller certificate"
 
 if [ $CLOUD_KEY -eq 0 ]; then
 	echo "* Stopping nginx..."
 	systemctl stop nginx
 
-	if [ ! -f "/usr/lib/unifi/data/keystore.backup" ]; then
-		echo "* Moving controller keystore for initial setup..."
-		mv /usr/lib/unifi/data/keystore /usr/lib/unifi/data/keystore.backup
-		cp /etc/ssl/private/unifi.keystore.jks /usr/lib/unifi/data/keystore
+	echo "* Backup current cert directory"
+	mkdir -p $BACKUPDIR
+	cp -r $CERTDIR "${BACKUPDIR}/${TIMESTAMP}"
 
-		echo "* Modifying controller config for initial setup..."
-		sed -i /etc/default/unifi -e '/UNIFI_SSL_KEYSTORE/s/^/# /'
-	fi
+	echo "* Modifying controller config for initial setup..."
+	sed -i /etc/default/unifi -e '/UNIFI_SSL_KEYSTORE/s/^/# /'
 fi
 
 echo "* Stopping UniFi controller..."
@@ -73,9 +78,12 @@ openssl pkcs12 -export -passout pass:aircontrolenterprise \
  -CAfile "${WORKDIR}/fullchain.cer" -caname root
 
 echo "* Importing certificate into Unifi Controller keystore..."
-keytool -noprompt -trustcacerts -importkeystore -deststorepass aircontrolenterprise \
- -destkeypass aircontrolenterprise -destkeystore /usr/lib/unifi/data/keystore \
- -srckeystore "${WORKDIR}/keystore.pkcs12" -srcstoretype PKCS12 -srcstorepass aircontrolenterprise -alias unifi
+keytool -noprompt -trustcacerts -importkeystore \
+ -deststorepass $KEYPASS \
+ -destkeypass $KEYPASS \
+ -destkeystore "${WORKDIR}/unifi.keystore.jks" \
+ -srckeystore "${WORKDIR}/keystore.pkcs12" \
+ -srcstoretype PKCS12 -srcstorepass $KEYPASS -alias unifi
 
 cat > "${WORKDIR}/identrust.cer" << EOF
 -----BEGIN CERTIFICATE-----
@@ -107,20 +115,33 @@ java -jar /usr/lib/unifi/lib/ace.jar import_cert \
  "${WORKDIR}/identrust.cer"
 
 if [ $CLOUD_KEY -eq 0 ]; then
-	if [ ! -f "/etc/ssl/private/cloudkey.key.backup" ]; then
+	if [ -d "${BACKUPDIR}/${TIMESTAMP}" ]; then
 		echo "* Setting permissions on certificate and key for initial setup..."
 		chown ${CURRENT_USER}:ssl-cert "${WORKDIR}/fullchain.cer"
 		chown ${CURRENT_USER}:ssl-cert "${WORKDIR}/${DOMAIN}.key"
+		chown ${CURRENT_USER}:ssl-cert "${WORKDIR}/unifi.keystore.jks"
 
 		chmod 640 "${WORKDIR}/fullchain.cer"
 		chmod 640 "${WORKDIR}/${DOMAIN}.key"
+		chmod 640 "${WORKDIR}/unifi.keystore.jks"
 
-		echo "* Moving nginx certificates for initial setup..."
-		mv /etc/ssl/private/cloudkey.crt /etc/ssl/private/cloudkey.crt.backup
-		mv /etc/ssl/private/cloudkey.key /etc/ssl/private/cloudkey.key.backup
+		echo "* Remove old cert files..."
+		rm "${CERTDIR}/cert.tar"
+		rm "${CERTDIR}/cloudkey.crt"
+		rm "${CERTDIR}/cloudkey.key"
+		rm "${CERTDIR}/cloudkey.unifi.keystore.jks"
+		rm "${KEYSTOREDIR}/keystore"
 
-		ln -s "${WORKDIR}/fullchain.cer" /etc/ssl/private/cloudkey.crt
-		ln -s "${WORKDIR}/${DOMAIN}.key" /etc/ssl/private/cloudkey.key
+		echo "* Install new cert files..."
+		cp "${WORKDIR}/fullchain.cer" "${CERTDIR}/cloudkey.crt"
+		cp "${WORKDIR}/${DOMAIN}.key" "${CERTDIR}/cloudkey.key"
+		cp "${WORKDIR}/unifi.keystore.jks" "${CERTDIR}/unifi.keystore.jks"
+		ln -s "${CERTDIR}/unifi.keystore.jks" "${KEYSTOREDIR}/keystore"
+
+		tar -cvf "${CERTDIR}/cert.tar" "${CERTDIR}/cloudkey.crt" "${CERTDIR}/cloudkey.key" "${CERTDIR}/unifi.keystore.jks"
+
+		sed -i /etc/default/unifi -e '/UNIFI_SSL_KEYSTORE/s/^# //'
+
 	fi
 fi
 
