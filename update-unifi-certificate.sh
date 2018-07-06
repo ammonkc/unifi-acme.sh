@@ -129,7 +129,7 @@ if [ $CLOUD_KEY -eq 0 ]; then
 		rm "${CERTDIR}/cert.tar"
 		rm "${CERTDIR}/cloudkey.crt"
 		rm "${CERTDIR}/cloudkey.key"
-		rm "${CERTDIR}/cloudkey.unifi.keystore.jks"
+		rm "${CERTDIR}/unifi.keystore.jks"
 		rm "${KEYSTOREDIR}/keystore"
 
 		echo "* Install new cert files..."
