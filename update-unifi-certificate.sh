@@ -64,7 +64,7 @@ if [ $CLOUD_KEY -eq 0 ]; then
 	cp -r $CERTDIR "${BACKUPDIR}/${TIMESTAMP}"
 
 	echo "* Modifying controller config for initial setup..."
-	sed -i /etc/default/unifi -e '/UNIFI_SSL_KEYSTORE/s/^/# /'
+	sed -i /etc/default/unifi -e '/UNIFI_SSL_KEYSTORE/s/^#*/# /'
 fi
 
 echo "* Stopping UniFi controller..."
@@ -136,12 +136,10 @@ if [ $CLOUD_KEY -eq 0 ]; then
 		cp "${WORKDIR}/fullchain.cer" "${CERTDIR}/cloudkey.crt"
 		cp "${WORKDIR}/${DOMAIN}.key" "${CERTDIR}/cloudkey.key"
 		cp "${WORKDIR}/unifi.keystore.jks" "${CERTDIR}/unifi.keystore.jks"
-		ln -s "${CERTDIR}/unifi.keystore.jks" "${KEYSTOREDIR}/keystore"
+		cp "${CERTDIR}/unifi.keystore.jks" "${KEYSTOREDIR}/keystore"
 
-		tar -cvf "${CERTDIR}/cert.tar" "${CERTDIR}/cloudkey.crt" "${CERTDIR}/cloudkey.key" "${CERTDIR}/unifi.keystore.jks"
-
-		sed -i /etc/default/unifi -e '/UNIFI_SSL_KEYSTORE/s/^# //'
-
+		cd $CERTDIR
+		tar -cvf cert.tar cloudkey.crt cloudkey.key unifi.keystore.jks
 	fi
 fi
 
