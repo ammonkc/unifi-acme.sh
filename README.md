@@ -10,6 +10,8 @@ The `update-unifi-certificate.sh` script enables easy updating of the certificat
 * If acme.sh was installed in the default directory (`.acme.sh` in the user's home directory) and the certificate directory is under `.acme.sh` and is named for the domain inside of it, the second parameter can be omitted from the command:
   * `--reloadcmd '/path/to/update-unifi-certificate.sh "certificate.domain.here"'`
 
+* Example Crontab
+    - `15 0 * * * "/root/.acme.sh"/acme.sh --cron --home "/root/.acme.sh" --reloadcmd '/root/update-unifi-certificate.sh "unifi.ammonkc.com" > /dev/null`
 ## License
 
 Copyright 2018 Ammon Casey
