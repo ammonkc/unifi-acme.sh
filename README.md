@@ -11,7 +11,7 @@ The `update-unifi-certificate.sh` script enables easy updating of the certificat
   * `--reloadcmd '/path/to/update-unifi-certificate.sh "certificate.domain.here"'`
 
 * Example Crontab
-    - `15 0 * * * "/root/.acme.sh"/acme.sh --cron --home "/root/.acme.sh" --reloadcmd '/root/update-unifi-certificate.sh "unifi.ammonkc.com" > /dev/null`
+    - `15 0 * * * "/root/.acme.sh"/acme.sh --cron --home "/root/.acme.sh" --reloadcmd '/root/update-unifi-certificate.sh "unifi.ammonkc.com" > /dev/null'`
 ## License
 
 Copyright 2018 Ammon Casey
